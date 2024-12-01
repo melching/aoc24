@@ -1,4 +1,5 @@
 use std::fs;
+use std::time::Instant;
 
 fn read_and_parse_file() -> (Vec<i32>, Vec<i32>) {
     let mut first: Vec<i32> = Vec::new();
@@ -18,6 +19,7 @@ fn read_and_parse_file() -> (Vec<i32>, Vec<i32>) {
 }
 
 fn main() {
+    let now = Instant::now();
     let (first, second) = read_and_parse_file();
 
     // part one
@@ -44,4 +46,7 @@ fn main() {
     }
 
     println!("Similarity score: {}", sim_score);
+
+    let elapsed = now.elapsed();
+    println!("Elapsed: {:.2?}", elapsed);
 }
