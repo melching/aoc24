@@ -1,2 +1,2 @@
-# aoc24
-Adevent of Code 2024
+# Advent of Code 2024
+I plan to do rust, lets see how long until i switch or give up
