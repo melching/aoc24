@@ -109,7 +109,7 @@ fn sort_invalid_update_by_rules_but_better(
         } else if rules.get(a).unwrap().contains(b) {
             return std::cmp::Ordering::Less;
         } else {
-            return std::cmp::Ordering::Greater;
+            return std::cmp::Ordering::Equal; // Was 'less' before, but given that we can't make the decision here I changed it to 'equal'
         }
     });
     return valid_update;
