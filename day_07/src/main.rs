@@ -24,37 +24,33 @@ fn parse_content(content: &String) -> Vec<(i64, Vec<i64>)> {
     return results;
 }
 
-fn search_for_solution(target: i64, numbers: &Vec<i64>, new_operator: bool) -> bool {
-    if numbers.len() == 1 {
-        return target == numbers[0];
+fn search_for_solution(target: i64, last: i64, next: &[i64], new_operator: bool) -> bool {
+    if next.len() == 0 {
+        return target == last;
     }
-    if numbers.iter().max().unwrap() > &target {
+    if next.iter().max().unwrap() > &target {
         return false;
     }
 
-    if numbers[0] + numbers[1] <= target {
-        // + is valid
-        let mut new_vec: Vec<i64> = numbers.clone().split_off(2);
-        new_vec.insert(0, numbers[0] + numbers[1]);
-        if search_for_solution(target, &new_vec, new_operator) {
+    let new_last_add = last + next[0];
+    if new_last_add <= target {
+        if search_for_solution(target, new_last_add, &next[1..], new_operator) {
             return true;
         }
     }
-    if numbers[0] * numbers[1] <= target {
+
+    let new_last_mult = last * next[0];
+    if new_last_mult <= target {
         // * is valid
-        let mut new_vec: Vec<i64> = numbers.clone().split_off(2);
-        new_vec.insert(0, numbers[0] * numbers[1]);
-        if search_for_solution(target, &new_vec, new_operator) {
+        if search_for_solution(target, new_last_mult, &next[1..], new_operator) {
             return true;
         }
     }
     if new_operator {
-        let str_concat = numbers[0].to_string() + &numbers[1].to_string();
+        let str_concat = last.to_string() + &next[0].to_string();
         let new_value: i64 = str_concat.parse().expect("Not a number with new operator");
         if new_value <= target {
-            let mut new_vec: Vec<i64> = numbers.clone().split_off(2);
-            new_vec.insert(0, new_value);
-            if search_for_solution(target, &new_vec, new_operator) {
+            if search_for_solution(target, new_value, &next[1..], new_operator) {
                 return true;
             }
         }
@@ -71,7 +67,7 @@ fn main() {
 
     let mut sum_valid = 0;
     for eq in &equations {
-        if search_for_solution(eq.0, &eq.1, false) {
+        if search_for_solution(eq.0, eq.1[0], &eq.1[1..], false) {
             sum_valid += eq.0;
         }
     }
@@ -80,7 +76,7 @@ fn main() {
     // part two
     let mut sum_valid = 0;
     for eq in &equations {
-        if search_for_solution(eq.0, &eq.1, true) {
+        if search_for_solution(eq.0, eq.1[0], &eq.1[1..], true) {
             sum_valid += eq.0;
         }
     }
@@ -114,7 +110,7 @@ mod tests {
 
         let mut sum_valid = 0;
         for eq in equations {
-            if search_for_solution(eq.0, &eq.1, false) {
+            if search_for_solution(eq.0, eq.1[0], &eq.1[1..], false) {
                 sum_valid += eq.0;
             }
         }
@@ -128,7 +124,7 @@ mod tests {
 
         let mut sum_valid = 0;
         for eq in equations {
-            if search_for_solution(eq.0, &eq.1, true) {
+            if search_for_solution(eq.0, eq.1[0], &eq.1[1..], true) {
                 sum_valid += eq.0;
             }
         }
