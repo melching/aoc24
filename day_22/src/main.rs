@@ -23,22 +23,20 @@ fn prune(value: usize) -> usize {
 }
 
 fn step(secret: usize) -> usize {
-    let mut new_secret = secret;
-
     // step 1
     let temp = secret * 64;
     let mixed = mix(secret, temp);
-    new_secret = prune(mixed);
+    let new_secret = prune(mixed);
 
     // step 2
     let temp = new_secret / 32;
     let mixed = mix(new_secret, temp);
-    new_secret = prune(mixed);
+    let new_secret = prune(mixed);
 
     // step 3
     let temp = new_secret * 2048;
     let mixed = mix(new_secret, temp);
-    new_secret = prune(mixed);
+    let new_secret = prune(mixed);
 
     return new_secret;
 }
