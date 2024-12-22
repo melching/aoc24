@@ -1,0 +1,8 @@
+[package]
+name = "day_19"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+cached = "0.54.0"
+tqdm = "0.7.0"
