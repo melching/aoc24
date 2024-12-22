@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fs;
 use std::time::Instant;
 
@@ -50,6 +51,37 @@ fn step_times(secret: usize, steps: usize) -> usize {
     new_secret
 }
 
+fn get_last_digit(value: usize) -> isize {
+    let last_char = value.to_string().pop().unwrap();
+    return last_char.to_digit(10).expect("Not a number?!") as isize;
+}
+
+fn step_times_get_sequences(secret: usize, steps: usize) -> HashMap<Vec<isize>, isize> {
+    // track what sets of diff we have already seen
+    let mut seen: HashMap<Vec<isize>, isize> = HashMap::new();
+
+    let mut new_secret = secret;
+    let mut last_digit_old = get_last_digit(new_secret);
+
+    // last four diffs
+    let mut diff_last: Vec<isize> = vec![last_digit_old as isize; 4];
+
+    for i in 0..steps {
+        new_secret = step(new_secret);
+
+        let last_digit_new = get_last_digit(new_secret);
+        diff_last.remove(0);
+        diff_last.push(last_digit_new - last_digit_old);
+
+        last_digit_old = last_digit_new;
+
+        if i >= 3 && !seen.contains_key(&diff_last) {
+            seen.insert(diff_last.clone(), last_digit_old);
+        }
+    }
+    seen
+}
+
 fn main() {
     let input: String = read_file();
     let numbers = get_initial_numbers(&input);
@@ -64,6 +96,29 @@ fn main() {
     println!("Sum of new secrets: {}", total);
 
     // part two
+    let numbers = get_initial_numbers(&input);
+    let mut totals: HashMap<Vec<isize>, isize> = HashMap::new();
+    for n in numbers.iter() {
+        let sequences = step_times_get_sequences(*n, 2000);
+        for (k, v) in sequences.iter() {
+            *totals.entry(k.clone()).or_default() += v;
+        }
+    }
+
+    // get max value
+    let mut key_max: Vec<isize> = vec![0; 4];
+    let mut max: isize = 0;
+    for (k, v) in totals.iter() {
+        if v > &max {
+            key_max = k.clone();
+            max = *v;
+        }
+    }
+
+    println!(
+        "Found max amount of bananes at sequence {:?}: {}",
+        key_max, max
+    );
 
     let elapsed = now.elapsed();
     println!("Elapsed: {:.2?}", elapsed);
@@ -77,6 +132,14 @@ mod tests {
         "1
 10
 100
+2024"
+            .to_string()
+    }
+
+    fn get_test_content_2() -> String {
+        "1
+2
+3
 2024"
             .to_string()
     }
@@ -105,5 +168,37 @@ mod tests {
         assert_eq!(step_times(numbers[1], 2000), 4700978);
         assert_eq!(step_times(numbers[2], 2000), 15273692);
         assert_eq!(step_times(numbers[3], 2000), 8667524);
+    }
+
+    #[test]
+    fn test_solution_2() {
+        let input = get_test_content_2();
+        let numbers = get_initial_numbers(&input);
+
+        let mut totals: HashMap<Vec<isize>, isize> = HashMap::new();
+        for n in numbers.iter() {
+            let sequences = step_times_get_sequences(*n, 2000);
+            for (k, v) in sequences.iter() {
+                *totals.entry(k.clone()).or_default() += v;
+            }
+        }
+
+        // get max value
+        let mut key_max: Vec<isize> = vec![0; 4];
+        let mut max: isize = 0;
+        for (k, v) in totals.iter() {
+            if v > &max {
+                key_max = k.clone();
+                max = *v;
+            }
+        }
+
+        println!(
+            "Found max amount of bananes at sequence {:?}: {}",
+            key_max, max
+        );
+
+        assert_eq!(key_max, vec![-2, 1, -1, 3]);
+        assert_eq!(max, 23);
     }
 }
