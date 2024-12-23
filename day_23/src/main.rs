@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::time::Instant;
@@ -19,7 +20,7 @@ fn parse_input(input: &String) -> HashMap<&str, HashSet<&str>> {
     computers
 }
 
-fn find_loops<'a>(
+fn find_loops_by_distance<'a>(
     graph: &'a HashMap<&'a str, HashSet<&'a str>>,
     start: &'a str,
     current: &'a str,
@@ -49,10 +50,46 @@ fn find_loops<'a>(
 
         // lets look further
         // Note that this will add duplicates into the list that have to be filtered later on
-        loops.extend(find_loops(graph, start, comp, &mut seen.clone(), distance));
+        loops.extend(find_loops_by_distance(
+            graph,
+            start,
+            comp,
+            &mut seen.clone(),
+            distance,
+        ));
     }
 
     loops
+}
+
+// solution for part one does not work nicely, so lets change it a little
+fn find_largest_set<'a>(graph: HashMap<&'a str, HashSet<&'a str>>) -> Vec<&'a str> {
+    let computers = graph.clone();
+
+    let mut largest_comb: Vec<&str> = Vec::new();
+    'comp_loop: for (comp, conns) in computers.iter() {
+        for possible_len in (0..conns.len()).rev() {
+            'comb_loop: for combination in conns.iter().combinations(possible_len) {
+                for elem in combination.iter() {
+                    let mut temp_set: HashSet<&str> =
+                        HashSet::from_iter(combination.iter().map(|&&x| x)); // dont know why i had to map, i asked copilot here
+                    temp_set.remove(*elem);
+                    temp_set.insert(comp);
+                    if !temp_set.is_subset(graph.get(*elem).unwrap()) {
+                        continue 'comb_loop;
+                    }
+                }
+                // found largest solution for start computer
+                if combination.len() + 1 > largest_comb.len() {
+                    largest_comb = combination.into_iter().map(|&x| x).collect();
+                    largest_comb.push(comp);
+                    // dont know why i had to map, i asked copilot here
+                }
+                continue 'comp_loop;
+            }
+        }
+    }
+    largest_comb
 }
 
 fn main() {
@@ -68,7 +105,7 @@ fn main() {
             continue;
         }
         let mut seen: HashSet<&str> = HashSet::new();
-        for l in find_loops(&computers, &comp, &comp, &mut seen, 3) {
+        for l in find_loops_by_distance(&computers, &comp, &comp, &mut seen, 3) {
             if !all_loops.contains(&l) {
                 all_loops.push(l);
             }
@@ -80,6 +117,14 @@ fn main() {
     );
 
     // part two
+    let mut largest = find_largest_set(computers);
+    largest.sort();
+
+    println!(
+        "Longest set of connections: {:?}, length: {:?}",
+        largest.join(","),
+        largest.len()
+    );
 
     let elapsed = now.elapsed();
     println!("Elapsed: {:.2?}", elapsed);
@@ -132,7 +177,7 @@ td-yn"
         let mut all_loops: Vec<HashSet<&str>> = Vec::new();
         for (comp, _) in computers.iter() {
             let mut seen: HashSet<&str> = HashSet::new();
-            for l in find_loops(&computers, &comp, &comp, &mut seen, 3) {
+            for l in find_loops_by_distance(&computers, &comp, &comp, &mut seen, 3) {
                 if !all_loops.contains(&l) {
                     all_loops.push(l);
                 }
@@ -153,7 +198,7 @@ td-yn"
                 continue;
             }
             let mut seen: HashSet<&str> = HashSet::new();
-            for l in find_loops(&computers, &comp, &comp, &mut seen, 3) {
+            for l in find_loops_by_distance(&computers, &comp, &comp, &mut seen, 3) {
                 if !all_loops.contains(&l) {
                     all_loops.push(l);
                 }
@@ -161,5 +206,19 @@ td-yn"
         }
 
         assert_eq!(all_loops.len(), 7)
+    }
+
+    #[test]
+    fn test_solution_2() {
+        let input = get_test_content();
+        let computers = parse_input(&input);
+
+        let largest = find_largest_set(computers);
+
+        println!(
+            "Longest set of connections: {:?}, length: {:?}",
+            largest,
+            largest.len()
+        );
     }
 }
