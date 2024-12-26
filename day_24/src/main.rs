@@ -8,9 +8,14 @@ fn read_file() -> String {
     return content;
 }
 
-fn parse_input(input: &String) -> (HashMap<&str, bool>, Vec<((&str, &str), &str, &str)>) {
-    let mut initial: HashMap<&str, bool> = HashMap::new();
-    let mut gates: Vec<((&str, &str), &str, &str)> = Vec::new(); // connected, operand, output
+fn parse_input(
+    input: &String,
+) -> (
+    HashMap<String, bool>,
+    Vec<((String, String), String, String)>,
+) {
+    let mut initial: HashMap<String, bool> = HashMap::new();
+    let mut gates: Vec<((String, String), String, String)> = Vec::new(); // connected, operand, output
 
     let mut split = input.split("\n\n");
 
@@ -18,7 +23,7 @@ fn parse_input(input: &String) -> (HashMap<&str, bool>, Vec<((&str, &str), &str,
     for line in split.next().unwrap().lines() {
         let mut line_split = line.split(": ");
         initial.insert(
-            line_split.next().unwrap(),
+            line_split.next().unwrap().parse().unwrap(),
             line_split.next().unwrap() == "1",
         );
     }
@@ -27,14 +32,18 @@ fn parse_input(input: &String) -> (HashMap<&str, bool>, Vec<((&str, &str), &str,
     let re = Regex::new(r"(.+) (XOR|OR|AND) (.+) -> (.+)$").unwrap();
     for line in split.next().unwrap().lines() {
         for (_, [input1, operand, input2, output]) in re.captures_iter(line).map(|c| c.extract()) {
-            gates.push(((input1, input2), operand, output));
+            gates.push((
+                (input1.parse().unwrap(), input2.parse().unwrap()),
+                operand.parse().unwrap(),
+                output.parse().unwrap(),
+            ));
         }
     }
     (initial, gates)
 }
 
-fn calc_gate(input1: &bool, input2: &bool, operand: &str) -> bool {
-    match operand {
+fn calc_gate(input1: &bool, input2: &bool, operand: &String) -> bool {
+    match operand.as_str() {
         "AND" => return *input1 && *input2,
         "OR" => return *input1 || *input2,
         "XOR" => return *input1 ^ *input2,
@@ -43,24 +52,24 @@ fn calc_gate(input1: &bool, input2: &bool, operand: &str) -> bool {
 }
 
 fn run<'a>(
-    initial_states: &'a HashMap<&'a str, bool>,
-    gates: &'a Vec<((&'a str, &'a str), &'a str, &'a str)>,
-) -> HashMap<&'a str, bool> {
-    let mut states: HashMap<&str, bool> = initial_states.clone();
+    initial_states: &HashMap<String, bool>,
+    gates: &Vec<((String, String), String, String)>,
+) -> HashMap<String, bool> {
+    let mut states = initial_states.clone();
     let mut remaining_gates = gates.clone();
 
     while remaining_gates.len() > 0 {
         let mut processed_gates: Vec<usize> = Vec::new();
         'rem_loop: for (i, gate) in remaining_gates.iter().enumerate() {
-            if !states.contains_key(gate.0 .0) || !states.contains_key(gate.0 .1) {
+            if !states.contains_key(&gate.0 .0) || !states.contains_key(&gate.0 .1) {
                 continue 'rem_loop;
             }
             let output = calc_gate(
-                states.get(gate.0 .0).unwrap(),
-                states.get(gate.0 .1).unwrap(),
-                gate.1,
+                states.get(&gate.0 .0).unwrap(),
+                states.get(&gate.0 .1).unwrap(),
+                &gate.1,
             );
-            states.insert(gate.2, output);
+            states.insert(gate.2.clone(), output);
             processed_gates.push(i);
         }
         for (i, idx) in processed_gates.iter().enumerate() {
@@ -70,15 +79,15 @@ fn run<'a>(
     states
 }
 
-fn calc_result(states: &HashMap<&str, bool>, starting_with: &str) -> usize {
+fn calc_result(states: &HashMap<String, bool>, starting_with: &str) -> usize {
     // get z-states
-    let mut zstates: Vec<(&str, bool)> = Vec::new();
+    let mut zstates: Vec<(String, bool)> = Vec::new();
     for state in states {
-        if state.0.starts_with(starting_with) {
-            zstates.push((state.0, *state.1));
+        if state.0.starts_with(&starting_with) {
+            zstates.push((state.0.clone(), *state.1));
         }
     }
-    zstates.sort_by(|a, b| a.0.cmp(b.0));
+    zstates.sort_by(|a, b| a.0.cmp(&b.0));
 
     let mut out: usize = 0;
     for (i, (_, bit)) in zstates.iter().enumerate() {
@@ -89,13 +98,13 @@ fn calc_result(states: &HashMap<&str, bool>, starting_with: &str) -> usize {
     out
 }
 
-fn check_for_loop(output: &str, gates: &Vec<((&str, &str), &str, &str)>) -> bool {
-    let mut inputs_to_check: Vec<&str> = Vec::new();
-    let mut seen_outputs: Vec<&str> = Vec::new();
+fn check_for_loop(output: &String, gates: &Vec<((String, String), String, String)>) -> bool {
+    let mut inputs_to_check: Vec<String> = Vec::new();
+    let mut seen_outputs: Vec<String> = Vec::new();
 
     for gate in gates {
-        if gate.0 .1 == output || gate.0 .0 == output {
-            inputs_to_check.push(gate.2);
+        if gate.0 .1 == *output || gate.0 .0 == *output {
+            inputs_to_check.push(gate.2.clone());
         }
     }
 
@@ -105,13 +114,13 @@ fn check_for_loop(output: &str, gates: &Vec<((&str, &str), &str, &str)>) -> bool
         for gate in gates {
             if gate.0 .1 == next_input || gate.0 .0 == next_input {
                 // loop detected
-                if gate.2 == output {
+                if gate.2 == *output {
                     return true;
                 }
                 // cont as usual
                 if !seen_outputs.contains(&gate.2) {
-                    inputs_to_check.push(gate.2);
-                    seen_outputs.push(gate.2);
+                    inputs_to_check.push(gate.2.clone());
+                    seen_outputs.push(gate.2.clone());
                 }
             }
         }
